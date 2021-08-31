@@ -1,4 +1,4 @@
-const isObject = v => v !== null && typeof v === 'object'  //定义当前值是否为对象
+const isObject = v => v !== null && typeof v === 'object'
 
 // 建立响应式数据
 function reactive(obj) {
@@ -46,22 +46,22 @@ function effect(cb) {
     // 3.执行fn
     try {
       effectStack.push(rxEffect)
-      return cb
-    } catch {
+      return cb()
+    } finally {
       effectStack.pop()
     }
   }
 
-  //最后要执行一次，进行最初的依赖收集
+  //最初要执行一次,进行最初的依赖收集
   rxEffect()
   return rxEffect
 }
 
-// 依赖收集，建立 数据& cb映射关系
+/* 依赖收集：建立 数据&cb 映射关系 */
 const targetMap = new WeakMap()
 function track(target, key) {
   // 存入映射关系
-  const effectFn = effectStack[effectStack.length - 1]  // 拿出栈顶元素函数
+  const effectFn = effectStack[effectStack.length - 1]  // 拿出栈顶函数
   if (effectFn) {
     let depsMap = targetMap.get(target)
     if (!depsMap) {
@@ -77,7 +77,7 @@ function track(target, key) {
   }
 }
 
-
+/* 触发更新：根据映射关系，执行cb */
 function trigger(target, key) {
   const depsMap = targetMap.get(target)
   if (depsMap) {
