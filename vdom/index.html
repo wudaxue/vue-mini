@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vdom</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="./vdom.js"></script>
+  <script>
+    // 旧的 VNode
+    const oldVnode = createElement('div', null, [
+      createElement('p', { key: 'a', style: { color: 'blue' } }, '节点1'),
+      createElement('p', { key: 'b', '@click': () => { alert('haha') } }, '节点2'),
+      createElement('p', { key: 'c' }, '节点3'),
+      createElement('p', { key: 'd' }, '节点4'),
+    ])
+
+    // 新的 VNode
+    const newVnode = createElement('div', null, [
+      createElement('p', { key: 'd' }, '节点4'),
+      createElement('p', { key: 'a', style: { color: 'red' } }, '节点1'),
+      createElement('p', { key: 'b', '@click': () => { alert('hehe') } }, '节点2'),
+      createElement('p', { key: 'f' }, '节点6'),
+      createElement('p', { key: 'e', class: 'item-header' }, '节点5'),
+    ])
+
+    render(oldVnode, document.getElementById('app'))
+
+    // 2秒之后更新
+    setTimeout(() => {
+      render(newVnode, document.getElementById('app'))
+    }, 2000)
+  </script>
+</body>
+
+</html>
