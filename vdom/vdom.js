@@ -112,6 +112,55 @@ function render(vnode, container) {
   container.vnode = vnode
 }
 
-function mount(vnode, container) {
+function mount(vnode, container, refNode) {
+  const { flags } = vnode
+  if (flags === VNodeType.HTML) {
+    // 普通挂载标签
+    mountElement(vnode, container, refNode)
+  } else if (flags === VNodeType.Text) {
+    // 挂载纯文本
+    mountText(vnode, container)
+  }
+}
 
+function mountElement(vnode, container, refNode) {
+  const el = document.createElement(vnode.tag)
+  vnode.el = el
+  const data = vnode.data
+  if (data) {
+    for (let key in data) {
+      patchData(el, key, null, data[key])
+    }
+  }
+
+  const childFlags = vnode.childFlags
+  const children = vnode.children
+  if (childFlags !== ChildTyps.EMPTY) {
+    if (childFlags !== ChildTyps.SINGLE) {
+      mount(children, el)
+    } else if (childFlags === ChildTyps.MULTIPLE) {
+      for (let i = 0; i < children.length; i++) {
+        mount(children[i], el)
+      }
+    }
+  }
+  refNode ? container.insetBefore(el, refNode) : container.appendChild(el)
+}
+
+function mountText(vnode, container) {
+  const el = document.createTextNode(vnode.children)
+  vnode.el = el
+  container.appendChild(el)
+}
+
+function patch(oldVnode, newVnode, container) {
+  const newFlags = newVnode.flags
+  const oldFlags = oldVnode.flags
+  if (newFlags !== oldFlags) {
+    replaceVnode(oldVnode, newVnode, container)
+  } else if (newFlags === VNodeType.HTML) {
+    patchElement(oldVnode, newVnode, container)
+  } else if (newFlags === VNodeType.TEXT) {
+    patchText(oldVnode, newVnode)
+  }
 }
