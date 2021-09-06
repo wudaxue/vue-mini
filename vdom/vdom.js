@@ -164,3 +164,145 @@ function patch(oldVnode, newVnode, container) {
     patchText(oldVnode, newVnode)
   }
 }
+
+function replaceVnode(oldVnode, newVnode, container) {
+  container.removeChild(oldVnode.el)
+  mount(newVnode, container)
+}
+
+function patchElement(oldVnode, newVnode, container) {
+  // 如果新旧Vnode描述的是不同的标签，则调用 replaceVnode 函数 使用新的 Vnode替换 旧的Vnode
+  if (oldVnode.tag !== newVnode.tag) {
+    replaceVnode(oldVnode, newVnode, container)
+    return
+  }
+
+  // 拿到 el 元素，注意这时要让 newVnode.el 也引用还元素
+  const el = (newVnode.el = oldVnode.el)
+  const oldData = oldVnode.data
+  const newData = newVnode.data
+
+  if (newData) {
+    for (let key in newData) {
+      const oldValue = oldData[key]
+      const newValue = newData[key]
+      patchData(el, key, oldValue, newValue)
+    }
+  }
+  // 删除
+  if (oldValue) {
+    const oldValue = oldData[key]
+    if (oldValue && !newData.hasOwnProperty(key)) {
+      patchData(el, key, oldValue, null)
+    }
+  }
+
+  // 调用 patchChildren 函数递归的更新子节点 
+  patchChildren(
+    oldVnode.childFlags, // 旧的 Vnode 子节点的类型
+    newVnode.childFlags, // 新的 Vnode 子节点的类型
+    oldVnode.children, // 旧的 Vnode 子节点
+    newVnode.children, // 新的 Vnode 子节点
+    el // 当前标签元素，即这些子节点的父节点
+  )
+}
+
+function patchChildren(oldChildFlags, newChildFlags, oldChildren, newChildren, container) {
+  switch (oldChildFlags) {
+    // 旧的 children 是单个子节点,会执行该 case 语句块
+    case ChildTyps.SINGLE:
+      switch (newChildFlags) {
+        case ChildTyps.SINGLE:
+          // 新的 children 也是单个子节点时，会执行该 case 语句块
+          patch(oldChildren, newChildren, container)
+          break
+        case ChildTyps.EMPTY:
+          // 新的 children 中没有子节点时
+          container.removeChild(oldChildren.el)
+          break
+        default:
+          // 新的 children 中有多个子节点
+          container.removeChild(oldChildren.el)
+          for (let i = 0; i < newChildren.length; i++) {
+            mount(newChildren[i], container)
+          }
+          break
+      }
+      break
+    //旧的 children 没有子节点
+    case ChildTyps.EMPTY:
+      switch (newChildFlags) {
+        case ChildTyps.SINGLE:
+          mount(newChildren, container)
+          break
+        case ChildTyps.EMPTY:
+          break
+        default:
+          for (let i = 0; i < newChildren.length; i++) {
+            mount(newChildren[i], container)
+          }
+          break
+      }
+    // 旧 children 有多个子节点
+    default:
+      switch (newChildFlags) {
+        case ChildTyps.SINGLE:
+          for (let i = 0; i < oldChildren.length; i++) {
+            container.removeChild(oldChildren[i].el)
+          }
+          mount(newChildren, container)
+          break
+        case ChildTyps.EMPTY:
+          for (let i = 0; i < oldChildren.length; i++) {
+            container.removeChild(oldChildren[i].el)
+          }
+          break
+        default:
+          let lastIndex = 0
+          for (let i = 0; i < newChildren.length; i++) {
+            const newVnode = newChildren[i]
+            let j = 0, find = false
+            for (j; j < oldChildren.length; j++) {
+              const oldVnode = oldChildren[j]
+              if (newVnode.key === oldVnode.key) {
+                find = true
+                patch(oldVnode, newVnode, container)
+                if (j < lastIndex) {
+                  // 需要移动
+                  const refNode = newChildren[i - 1].el.nextSibling
+                  container.insertBefore(oldVnode.el, refNode)
+                  break
+                } else {
+                  // 更新lastIndex
+                  lastIndex = j
+                }
+              }
+            }
+            if (!find) {
+              // 挂载新节点
+              const refVnode = i - 1 < 0 ? oldChildren[0].el : newChildren[i - 1].el.nextSibling
+              mount(newVnode, container, refVnode)
+            }
+          }
+          //移除已经不存在的节点
+          for (let i = 0; i < oldChildren.length; i++) {
+            const oldVnode = oldChildren[i]
+            const has = newChildren.find(newVnode => newVnode.key === oldVnode.key)
+            if (!has) {
+              container.removeChild(oldVnode.el)
+            }
+          }
+          break
+      }
+      break
+  }
+}
+
+function patchText(oldVnode, newVnode) {
+  // 拿到文本节点 el,同时让 newVnode.el 指向该文本节点
+  const el = (newVnode.el = oldVnode.el)
+  // 只有当新旧文本内容不一致时才有必要更新
+  if (newVnode.children !== oldVnode.children) {
+    el.nodeValue = newVnode.children
+  }
+}
